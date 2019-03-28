@@ -45,6 +45,7 @@ help:
 	@echo '    lint               Run all linters including vet and gosec and others'
 	@echo '    fmt                Run gofmt on package sources.'
 	@echo '    build              Compile packages and dependencies.'
+	@echo `    grpc               Generate pb.go from proto file
 	@echo '    version            Print Go version.'
 	@echo ''
 	@echo 'Targets run by default are: clean fmt lint test.'
@@ -70,7 +71,7 @@ fmt:
 
 build:
 	@echo " $(GREEN_COLOR)[build]$(DEFAULT_COLOR)"
-	@$(GOBUILD) -o $(BINARY)
+	CGO_ENABLED=1 $(GOBUILD) --tags static -o $(BINARY)
 
 version:
 	@echo " $(GREEN_COLOR)[version]$(DEFAULT_COLOR)"
