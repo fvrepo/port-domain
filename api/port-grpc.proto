@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package portApi;
+
+import "google/protobuf/any.proto";
+
+service PortService {
+    rpc SavePort(SavePortRequest) returns (SavePortResponse);
+    rpc GetAllPorts(GetAllPortsRequest) returns (GetAllPortsResponse);
+}
+
+message SavePortRequest {
+    string id = 1;
+    PortDetails details = 2;
+}
+
+message SavePortResponse {}
+
+message GetAllPortsRequest {
+    string cursor = 2;
+    int32 limit = 3;
+}
+
+message GetAllPortsResponse {
+    repeated PortMap ports = 1;
+}
+
+message PortMap {
+    map<string, PortDetails> port = 1;
+}
+
+message PortDetails {
+    string name = 1;
+    repeated float coordinates = 2;
+    string city = 3;
+    string province = 4;
+    string country = 5;
+    repeated google.protobuf.Any alias = 6;
+    repeated google.protobuf.Any regions = 7;
+    string timezone = 8;
+    repeated string unlocs = 9;
+    string code = 10;
+}
+
+
