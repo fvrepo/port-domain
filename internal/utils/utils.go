@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// todo add test
 func BindEnv(cmd *cobra.Command) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		envVar := strings.ToUpper(f.Name)

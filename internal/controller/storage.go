@@ -8,5 +8,5 @@ import (
 
 type Storage interface {
 	InsertOrUpdatePort(ctx context.Context, port *models.Port) error
-	GetPort(ctx context.Context, id string) (*models.Port, error)
+	GetPorts(ctx context.Context, limit int) ([]*models.Port, error)
 }

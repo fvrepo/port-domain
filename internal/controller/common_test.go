@@ -100,7 +100,7 @@ func setupMongoContainer() (_ *storage.Storage, closer func() error, _ error) {
 		Env: []string{
 			"MONGO_INITDB_ROOT_USERNAME=test",
 			"MONGO_INITDB_ROOT_PASSWORD=root",
-			"MONGO_INITDB_DATABASE=ports",
+			"MONGO_INITDB_DATABASE=admin",
 		},
 	})
 	if err != nil {
@@ -121,7 +121,7 @@ func setupMongoContainer() (_ *storage.Storage, closer func() error, _ error) {
 		return nil, nil, errors.WithStack(err)
 	}
 
-	client, err := mongo.InitAndEnsureMongoDb("test", "root", fmt.Sprintf("localhost:%d", fp), "ports")
+	client, err := mongo.InitAndEnsureMongoDb("test", "root", fmt.Sprintf("localhost:%d", fp), "admin")
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
