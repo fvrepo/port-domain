@@ -598,8 +598,8 @@
   name = "github.com/opencontainers/runc"
   packages = ["libcontainer/user"]
   pruneopts = "UT"
-  revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
-  version = "v1.0.0-rc6"
+  revision = "69ae5da6afdcaaf38285a10b36f362e41cb298d6"
+  version = "v1.0.0-rc7"
 
 [[projects]]
   digest = "1:7a6ab584104636b15f87c75bbfad3dfd0f60847b53af903159f354ef708bd632"
@@ -982,7 +982,6 @@
     "github.com/facebookgo/stack",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/protoc-gen-go",
-    "github.com/golang/protobuf/ptypes/any",
     "github.com/golangci/golangci-lint/cmd/golangci-lint",
     "github.com/grpc-ecosystem/go-grpc-middleware/recovery",
     "github.com/ory/dockertest",

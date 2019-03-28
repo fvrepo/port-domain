@@ -42,7 +42,7 @@ func (s *Storage) InsertOrUpdatePort(ctx context.Context, port *models.Port) err
 	return nil
 }
 
-// todo rework with cursor approach
+// todo rework with cursor approach and ObjectId
 func (s *Storage) GetPorts(ctx context.Context, limit, skip int) ([]*models.Port, error) {
 	opts := options.Find().
 		SetLimit(int64(limit)).

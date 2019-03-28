@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/port-domain/internal/utils/mongo"
-
 	"github.com/facebookgo/stack"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/pkg/errors"
@@ -22,6 +20,7 @@ import (
 	"github.com/port-domain/internal/server"
 	"github.com/port-domain/internal/storage"
 	"github.com/port-domain/internal/utils"
+	"github.com/port-domain/internal/utils/mongo"
 	portApi "github.com/port-domain/pkg/grpcapi/port"
 )
 

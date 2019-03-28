@@ -5,7 +5,7 @@ required = [
 
 [[constraint]]
   name = "github.com/golangci/golangci-lint"
-  version = "1.14.1"
+  version = "v1.12.5"
 
 [[constraint]]
   name = "github.com/ory/dockertest"

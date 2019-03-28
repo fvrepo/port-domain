@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"github.com/port-domain/cmd/server"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/port-domain/cmd/server"
 )
 
 var l = logrus.New()

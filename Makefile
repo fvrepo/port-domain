@@ -23,6 +23,8 @@ PROTOCGOGEN  = protoc-gen-go
 BINARY = port
 
 BUILD_DIR = $(BASEPATH)
+COVERAGE_DIR  = $(BUILD_DIR)/coverage
+SUBCOV_DIR    = $(COVERAGE_DIR)/packages
 
 # all src packages without vendor and generated code
 PKGS = $(shell go list ./... | grep -v /vendor | grep -v /internal/server/grpcapi)
@@ -43,6 +45,7 @@ help:
 	@echo '    clean              Remove binary.'
 	@echo '    test               Run unit tests.'
 	@echo '    lint               Run all linters including vet and gosec and others'
+	@echo '    coverage           Report code tests coverage.'
 	@echo '    fmt                Run gofmt on package sources.'
 	@echo '    build              Compile packages and dependencies.'
 	@echo `    grpc               Generate pb.go from proto file
@@ -55,6 +58,16 @@ clean:
 	@echo " $(GREEN_COLOR)[clean]$(DEFAULT_COLOR)"
 	@$(GOCLEAN)
 	@if [ -f $(BINARY) ] ; then rm $(BINARY) ; fi
+
+coverage:
+	@echo " [$(GREEN_COLOR)coverage$(DEFAULT_COLOR)]"
+	@-mkdir -p $(SUBCOV_DIR)/
+	@for package in $(PKGS); do $(GOTEST) -coverpkg=./... -coverprofile $(SUBCOV_DIR)/`basename "$$package"`.cov "$$package"; done
+	@echo 'mode: count' > $(COVERAGE_DIR)/coverage.cov ;
+	@tail -q -n +2 $(SUBCOV_DIR)/*.cov >> $(COVERAGE_DIR)/coverage.cov ;
+	@go tool cover -func=$(COVERAGE_DIR)/coverage.cov ;
+	@if [ $(html) ]; then go tool cover -html=$(COVERAGE_DIR)/coverage.cov -o coverage.html ; fi
+	@rm -rf $(COVERAGE_DIR);
 
 lint:
 	@echo " [$(GREEN_COLOR)lint$(DEFAULT_COLOR)]"
