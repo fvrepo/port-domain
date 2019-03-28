@@ -10,7 +10,7 @@ COPY ./pkg ./pkg
 COPY ./vendor ./vendor
 COPY Makefile ./main.go ./
 
-RUN make && \
+RUN make build && \
     cp ./port /usr/local/bin/ && \
     rm -rf /go/src/github.com
 
