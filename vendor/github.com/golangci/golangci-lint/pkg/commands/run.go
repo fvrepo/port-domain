@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golangci/golangci-lint/pkg/result/processors"
+
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -27,9 +29,11 @@ import (
 func getDefaultExcludeHelp() string {
 	parts := []string{"Use or not use default excludes:"}
 	for _, ep := range config.DefaultExcludePatterns {
-		parts = append(parts, fmt.Sprintf("  # %s: %s", ep.Linter, ep.Why))
-		parts = append(parts, fmt.Sprintf("  - %s", color.YellowString(ep.Pattern)))
-		parts = append(parts, "")
+		parts = append(parts,
+			fmt.Sprintf("  # %s: %s", ep.Linter, ep.Why),
+			fmt.Sprintf("  - %s", color.YellowString(ep.Pattern)),
+			"",
+		)
 	}
 	return strings.Join(parts, "\n")
 }
@@ -41,10 +45,18 @@ func wh(text string) string {
 	return color.GreenString(text)
 }
 
-func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager) {
+func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager, isFinalInit bool) {
 	hideFlag := func(name string) {
 		if err := fs.MarkHidden(name); err != nil {
 			panic(err)
+		}
+
+		// we run initFlagSet multiple times, but we wouldn't like to see deprecation message multiple times
+		if isFinalInit {
+			const deprecateMessage = "flag will be removed soon, please, use .golangci.yml config"
+			if err := fs.MarkDeprecated(name, deprecateMessage); err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -85,9 +97,11 @@ func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager) {
 	fs.BoolVar(&lsc.Errcheck.CheckAssignToBlank, "errcheck.check-blank", false,
 		"Errcheck: check for errors assigned to blank identifier: _ = errFunc()")
 	hideFlag("errcheck.check-blank")
-	fs.StringVar(&lsc.Errcheck.Exclude, "errcheck.exclude", "", "errcheck.exclude")
+	fs.StringVar(&lsc.Errcheck.Exclude, "errcheck.exclude", "",
+		"Path to a file containing a list of functions to exclude from checking")
 	hideFlag("errcheck.exclude")
-	fs.Var(&lsc.Errcheck.Ignore, "errcheck.ignore", "errcheck.ignore")
+	fs.StringVar(&lsc.Errcheck.Ignore, "errcheck.ignore", "fmt:.*",
+		`Comma-separated list of pairs of the form pkg:regex. The regex is used to ignore names within pkg`)
 	hideFlag("errcheck.ignore")
 
 	fs.BoolVar(&lsc.Govet.CheckShadowing, "govet.check-shadowing", false,
@@ -165,16 +179,16 @@ func initFlagSet(fs *pflag.FlagSet, cfg *config.Config, m *lintersdb.Manager) {
 		wh("Show only new issues created after git revision `REV`"))
 	fs.StringVar(&ic.DiffPatchFilePath, "new-from-patch", "",
 		wh("Show only new issues created in git patch with file path `PATH`"))
-
+	fs.BoolVar(&ic.NeedFix, "fix", false, "Fix found issues (if it's supported by the linter)")
 }
 
 func (e *Executor) initRunConfiguration(cmd *cobra.Command) {
 	fs := cmd.Flags()
 	fs.SortFlags = false // sort them as they are defined here
-	initFlagSet(fs, e.cfg, e.DBManager)
+	initFlagSet(fs, e.cfg, e.DBManager, true)
 }
 
-func (e Executor) getConfigForCommandLine() (*config.Config, error) {
+func (e *Executor) getConfigForCommandLine() (*config.Config, error) {
 	// We use another pflag.FlagSet here to not set `changed` flag
 	// on cmd.Flags() options. Otherwise string slice options will be duplicated.
 	fs := pflag.NewFlagSet("config flag set", pflag.ContinueOnError)
@@ -184,7 +198,7 @@ func (e Executor) getConfigForCommandLine() (*config.Config, error) {
 	// `changed` variable inside string slice vars will be shared.
 	// Use another config variable here, not e.cfg, to not
 	// affect main parsing by this parsing of only config option.
-	initFlagSet(fs, &cfg, e.DBManager)
+	initFlagSet(fs, &cfg, e.DBManager, false)
 
 	// Parse max options, even force version option: don't want
 	// to get access to Executor here: it's error-prone to use
@@ -242,7 +256,7 @@ func fixSlicesFlags(fs *pflag.FlagSet) {
 func (e *Executor) runAnalysis(ctx context.Context, args []string) (<-chan result.Issue, error) {
 	e.cfg.Run.Args = args
 
-	enabledLinters, err := e.EnabledLintersSet.Get()
+	enabledLinters, err := e.EnabledLintersSet.Get(true)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +283,9 @@ func (e *Executor) runAnalysis(ctx context.Context, args []string) (<-chan resul
 		return nil, err
 	}
 
-	return runner.Run(ctx, enabledLinters, lintCtx), nil
+	issuesCh := runner.Run(ctx, enabledLinters, lintCtx)
+	fixer := processors.NewFixer(e.cfg, e.log)
+	return fixer.Process(issuesCh), nil
 }
 
 func (e *Executor) setOutputToDevNull() (savedStdout, savedStderr *os.File) {
@@ -351,6 +367,8 @@ func (e *Executor) createPrinter() (printers.Printer, error) {
 		p = printers.NewTab(e.cfg.Output.PrintLinterName, e.log.Child("tab_printer"))
 	case config.OutFormatCheckstyle:
 		p = printers.NewCheckstyle()
+	case config.OutFormatCodeClimate:
+		p = printers.NewCodeClimate()
 	default:
 		return nil, fmt.Errorf("unknown output format %s", format)
 	}
@@ -358,7 +376,7 @@ func (e *Executor) createPrinter() (printers.Printer, error) {
 	return p, nil
 }
 
-func (e *Executor) executeRun(cmd *cobra.Command, args []string) {
+func (e *Executor) executeRun(_ *cobra.Command, args []string) {
 	needTrackResources := e.cfg.Run.IsVerbose || e.cfg.Run.PrintResourcesUsage
 	trackResourcesEndCh := make(chan struct{})
 	defer func() { // XXX: this defer must be before ctx.cancel defer
@@ -395,17 +413,17 @@ func (e *Executor) setupExitCode(ctx context.Context) {
 	}
 
 	if e.exitCode == exitcodes.Success &&
-		os.Getenv("GL_TEST_RUN") == "1" &&
+		(os.Getenv("GL_TEST_RUN") == "1" || os.Getenv("FAIL_ON_WARNINGS") == "1") &&
 		len(e.reportData.Warnings) != 0 {
 
 		e.exitCode = exitcodes.WarningInTest
 	}
 }
 
-func watchResources(ctx context.Context, done chan struct{}, log logutils.Log) {
+func watchResources(ctx context.Context, done chan struct{}, logger logutils.Log) {
 	startedAt := time.Now()
 
-	rssValues := []uint64{}
+	var rssValues []uint64
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -438,8 +456,8 @@ func watchResources(ctx context.Context, done chan struct{}, log logutils.Log) {
 
 	const MB = 1024 * 1024
 	maxMB := float64(max) / MB
-	log.Infof("Memory: %d samples, avg is %.1fMB, max is %.1fMB",
+	logger.Infof("Memory: %d samples, avg is %.1fMB, max is %.1fMB",
 		len(rssValues), float64(avg)/MB, maxMB)
-	log.Infof("Execution took %s", time.Since(startedAt))
+	logger.Infof("Execution took %s", time.Since(startedAt))
 	close(done)
 }

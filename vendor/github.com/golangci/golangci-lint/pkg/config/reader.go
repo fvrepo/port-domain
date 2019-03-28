@@ -11,6 +11,8 @@ import (
 
 	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
+
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 type FileReader struct {
@@ -103,6 +105,11 @@ func (r *FileReader) validateConfig() error {
 	if c.Run.IsVerbose {
 		return errors.New("can't set run.verbose option with config: only on command-line")
 	}
+	for i, rule := range c.Issues.ExcludeRules {
+		if err := rule.Validate(); err != nil {
+			return fmt.Errorf("error in exclude rule #%d: %v", i, err)
+		}
+	}
 
 	return nil
 }
@@ -181,6 +188,11 @@ func (r *FileReader) parseConfigOption() (string, error) {
 
 	if cfg.Run.NoConfig {
 		return "", errConfigDisabled
+	}
+
+	configFile, err := homedir.Expand(configFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to expand configuration path")
 	}
 
 	return configFile, nil

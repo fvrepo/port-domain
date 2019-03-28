@@ -10,7 +10,7 @@ import (
 
 type Controller interface {
 	SavePort(ctx context.Context, p *models.Port) error
-	GetAllPorts(ctx context.Context, limit int, cursor string) ([]*models.Port, error)
+	GetAllPorts(ctx context.Context, limit, skip int) ([]*models.Port, error)
 }
 
 type Server struct {
@@ -22,6 +22,7 @@ func New(con Controller) *Server {
 }
 
 func (s *Server) SavePort(ctx context.Context, request *portApi.SavePortRequest) (*portApi.SavePortResponse, error) {
+
 	return &portApi.SavePortResponse{}, nil
 }
 

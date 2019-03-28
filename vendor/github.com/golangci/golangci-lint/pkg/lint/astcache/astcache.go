@@ -5,11 +5,11 @@ import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"golang.org/x/tools/go/packages"
 
+	"github.com/golangci/golangci-lint/pkg/fsutils"
 	"github.com/golangci/golangci-lint/pkg/logutils"
 )
 
@@ -33,11 +33,7 @@ func NewCache(log logutils.Log) *Cache {
 	}
 }
 
-func (c Cache) Get(filename string) *File {
-	return c.m[filepath.Clean(filename)]
-}
-
-func (c Cache) keys() []string {
+func (c Cache) ParsedFilenames() []string {
 	var keys []string
 	for k := range c.m {
 		keys = append(keys, k)
@@ -45,25 +41,32 @@ func (c Cache) keys() []string {
 	return keys
 }
 
-func (c Cache) GetOrParse(filename string, fset *token.FileSet) *File {
-	if !filepath.IsAbs(filename) {
+func (c Cache) normalizeFilename(filename string) string {
+	absPath := func() string {
+		if filepath.IsAbs(filename) {
+			return filepath.Clean(filename)
+		}
+
 		absFilename, err := filepath.Abs(filename)
 		if err != nil {
 			c.log.Warnf("Can't abs-ify filename %s: %s", filename, err)
-		} else {
-			filename = absFilename
+			return filename
 		}
+
+		return absFilename
+	}()
+
+	ret, err := fsutils.EvalSymlinks(absPath)
+	if err != nil {
+		c.log.Warnf("Failed to eval symlinks for %s: %s", absPath, err)
+		return absPath
 	}
 
-	f := c.m[filename]
-	if f != nil {
-		return f
-	}
+	return ret
+}
 
-	c.log.Infof("Parse AST for file %s on demand, existing files are %s",
-		filename, strings.Join(c.keys(), ","))
-	c.parseFile(filename, fset)
-	return c.m[filename]
+func (c Cache) Get(filename string) *File {
+	return c.m[c.normalizeFilename(filename)]
 }
 
 func (c Cache) GetAllValidFiles() []*File {
@@ -79,6 +82,18 @@ func (c *Cache) prepareValidFiles() {
 		files = append(files, f)
 	}
 	c.s = files
+}
+
+func LoadFromFilenames(log logutils.Log, filenames ...string) *Cache {
+	c := NewCache(log)
+
+	fset := token.NewFileSet()
+	for _, filename := range filenames {
+		c.parseFile(filename, fset)
+	}
+
+	c.prepareValidFiles()
+	return c
 }
 
 func LoadFromPackages(pkgs []*packages.Package, log logutils.Log) (*Cache, error) {
@@ -126,6 +141,8 @@ func (c *Cache) parseFile(filePath string, fset *token.FileSet) {
 	if fset == nil {
 		fset = token.NewFileSet()
 	}
+
+	filePath = c.normalizeFilename(filePath)
 
 	// comments needed by e.g. golint
 	f, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)

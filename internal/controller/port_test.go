@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/port-domain/internal/models"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/port-domain/internal/models"
 )
 
 func TestStartContainer(t *testing.T) {
@@ -32,7 +32,7 @@ func TestStartContainer(t *testing.T) {
 	require.NoError(t, err)
 
 	var ps []*models.Port
-	ps, err = mg.GetPorts(ctx, 10)
+	ps, err = mg.GetPorts(ctx, 10, 0)
 	require.NoError(t, err)
 	require.NotNil(t, ps)
 	require.Equal(t, 1, len(ps))
@@ -44,7 +44,7 @@ func TestStartContainer(t *testing.T) {
 	err = mg.InsertOrUpdatePort(ctx, p2)
 	require.NoError(t, err)
 
-	ps, err = mg.GetPorts(ctx, 10)
+	ps, err = mg.GetPorts(ctx, 10, 0)
 	require.NoError(t, err)
 	require.NotNil(t, ps)
 	require.Equal(t, 1, len(ps))
@@ -53,4 +53,8 @@ func TestStartContainer(t *testing.T) {
 	require.Equal(t, p2.City, ps[0].City)
 	require.Equal(t, p2.Country, ps[0].Country)
 
+	ps, err = mg.GetPorts(ctx, 10, 1)
+	require.NoError(t, err)
+	require.NotNil(t, ps)
+	require.Equal(t, 0, len(ps))
 }

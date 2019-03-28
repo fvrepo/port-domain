@@ -45,6 +45,7 @@ var CMD = &cobra.Command{
 		}
 
 		//init mongodb
+		// todo add index for _id
 		mongoDb, err := mongo.InitAndEnsureMongoDb(cfg.MongoUser, cfg.MongoPassword, cfg.MongoHost, cfg.MongoDb)
 		if err != nil {
 			return errors.WithStack(err)

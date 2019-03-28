@@ -55,6 +55,7 @@ func NewExecutor(version, commit, date string) *Executor {
 	e.initRun()
 	e.initHelp()
 	e.initLinters()
+	e.initConfig()
 
 	// init e.cfg by values from config: flags parse will see these values
 	// like the default ones. It will overwrite them only if the same option
@@ -63,6 +64,11 @@ func NewExecutor(version, commit, date string) *Executor {
 	r := config.NewFileReader(e.cfg, commandLineCfg, e.log.Child("config_reader"))
 	if err := r.Read(); err != nil {
 		e.log.Fatalf("Can't read config: %s", err)
+	}
+
+	e.cfg.LintersSettings.Gocritic.InferEnabledChecks(e.log)
+	if err := e.cfg.LintersSettings.Gocritic.Validate(e.log); err != nil {
+		e.log.Fatalf("Invalid gocritic settings: %s", err)
 	}
 
 	// Slice options must be explicitly set for proper merging of config and command-line options.
@@ -76,6 +82,6 @@ func NewExecutor(version, commit, date string) *Executor {
 	return e
 }
 
-func (e Executor) Execute() error {
+func (e *Executor) Execute() error {
 	return e.rootCmd.Execute()
 }

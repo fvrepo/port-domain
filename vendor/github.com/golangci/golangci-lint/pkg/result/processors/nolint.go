@@ -83,9 +83,13 @@ func (p *Nolint) getOrCreateFileData(i *result.Issue) (*fileData, error) {
 	fd = &fileData{}
 	p.cache[i.FilePath()] = fd
 
-	file := p.astCache.GetOrParse(i.FilePath(), nil)
-	if file.Err != nil {
-		return nil, fmt.Errorf("can't parse file %s: %s", i.FilePath(), file.Err)
+	if i.FilePath() == "" {
+		return nil, fmt.Errorf("no file path for issue")
+	}
+
+	file := p.astCache.Get(i.FilePath())
+	if file == nil || file.Err != nil {
+		return nil, fmt.Errorf("can't parse file %s: %v, astcache is %v", i.FilePath(), file, p.astCache.ParsedFilenames())
 	}
 
 	fd.ignoredRanges = p.buildIgnoredRangesForFile(file.F, file.Fset, i.FilePath())
@@ -148,6 +152,7 @@ func (e *rangeExpander) Visit(node ast.Node) ast.Visitor {
 	var foundRange *ignoredRange
 	for _, r := range e.inlineRanges {
 		if r.To == nodeStartLine-1 && nodeStartPos.Column == r.col {
+			r := r
 			foundRange = &r
 			break
 		}
@@ -171,41 +176,69 @@ func (p *Nolint) extractFileCommentsInlineRanges(fset *token.FileSet, comments .
 	var ret []ignoredRange
 	for _, g := range comments {
 		for _, c := range g.List {
-			text := strings.TrimLeft(c.Text, "/ ")
-			if !strings.HasPrefix(text, "nolint") {
-				continue
+			ir := p.extractInlineRangeFromComment(c.Text, g, fset)
+			if ir != nil {
+				ret = append(ret, *ir)
 			}
-
-			var linters []string
-			if strings.HasPrefix(text, "nolint:") {
-				// ignore specific linters
-				text = strings.Split(text, "//")[0] // allow another comment after this comment
-				linterItems := strings.Split(strings.TrimPrefix(text, "nolint:"), ",")
-				for _, linter := range linterItems {
-					linterName := strings.ToLower(strings.TrimSpace(linter))
-					lc := p.dbManager.GetLinterConfig(linterName)
-					if lc == nil {
-						p.unknownLintersSet[linterName] = true
-						continue
-					}
-					linters = append(linters, lc.Name()) // normalize name to work with aliases
-				}
-			} // else ignore all linters
-			nolintDebugf("%d: linters are %s", fset.Position(g.Pos()).Line, linters)
-
-			pos := fset.Position(g.Pos())
-			ret = append(ret, ignoredRange{
-				Range: result.Range{
-					From: pos.Line,
-					To:   fset.Position(g.End()).Line,
-				},
-				col:     pos.Column,
-				linters: linters,
-			})
 		}
 	}
 
 	return ret
+}
+
+func (p *Nolint) extractInlineRangeFromComment(text string, g ast.Node, fset *token.FileSet) *ignoredRange {
+	text = strings.TrimLeft(text, "/ ")
+	if !strings.HasPrefix(text, "nolint") {
+		return nil
+	}
+
+	buildRange := func(linters []string) *ignoredRange {
+		pos := fset.Position(g.Pos())
+		return &ignoredRange{
+			Range: result.Range{
+				From: pos.Line,
+				To:   fset.Position(g.End()).Line,
+			},
+			col:     pos.Column,
+			linters: linters,
+		}
+	}
+
+	if !strings.HasPrefix(text, "nolint:") {
+		return buildRange(nil) // ignore all linters
+	}
+
+	// ignore specific linters
+	var linters []string
+	text = strings.Split(text, "//")[0] // allow another comment after this comment
+	linterItems := strings.Split(strings.TrimPrefix(text, "nolint:"), ",")
+	var gotUnknownLinters bool
+	for _, linter := range linterItems {
+		linterName := strings.ToLower(strings.TrimSpace(linter))
+		metaLinter := p.dbManager.GetMetaLinter(linterName)
+		if metaLinter != nil {
+			// user can set metalinter name in nolint directive (e.g. megacheck), then
+			// we should add to nolint all the metalinter's default children
+			linters = append(linters, metaLinter.DefaultChildLinterNames()...)
+			continue
+		}
+
+		lc := p.dbManager.GetLinterConfig(linterName)
+		if lc == nil {
+			p.unknownLintersSet[linterName] = true
+			gotUnknownLinters = true
+			continue
+		}
+
+		linters = append(linters, lc.Name()) // normalize name to work with aliases
+	}
+
+	if gotUnknownLinters {
+		return buildRange(nil) // ignore all linters to not annoy user
+	}
+
+	nolintDebugf("%d: linters are %s", fset.Position(g.Pos()).Line, linters)
+	return buildRange(linters)
 }
 
 func (p Nolint) Finish() {

@@ -59,7 +59,8 @@ clean:
 lint:
 	@echo " [$(GREEN_COLOR)lint$(DEFAULT_COLOR)]"
 	@$(GORUN) ./vendor/github.com/golangci/golangci-lint/cmd/golangci-lint/main.go run \
-	--no-config --disable=errcheck --enable=gosec --enable=prealloc ./...
+	--no-config --enable=errcheck --enable=gosec --enable=gocyclo --enable=nakedret \
+	--enable=prealloc --enable=gofmt --enable=goimports --enable=megacheck --enable=misspell ./...
 
 test:
 	@echo " $(GREEN_COLOR)[test]$(DEFAULT_COLOR)"

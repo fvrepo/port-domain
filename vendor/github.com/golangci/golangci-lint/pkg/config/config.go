@@ -1,9 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -13,6 +13,7 @@ const (
 	OutFormatColoredLineNumber = "colored-line-number"
 	OutFormatTab               = "tab"
 	OutFormatCheckstyle        = "checkstyle"
+	OutFormatCodeClimate       = "code-climate"
 )
 
 var OutFormats = []string{
@@ -21,6 +22,7 @@ var OutFormats = []string{
 	OutFormatJSON,
 	OutFormatTab,
 	OutFormatCheckstyle,
+	OutFormatCodeClimate,
 }
 
 type ExcludePattern struct {
@@ -54,7 +56,7 @@ var DefaultExcludePatterns = []ExcludePattern{
 	},
 	{
 		Pattern: "ineffective break statement. Did you mean to break out of the outer loop",
-		Linter:  "megacheck",
+		Linter:  "staticcheck",
 		Why:     "Developers tend to write in C-style with an explicit 'break' in a 'switch', so it's ok to ignore",
 	},
 	{
@@ -106,7 +108,8 @@ type Run struct {
 
 	Args []string
 
-	BuildTags []string `mapstructure:"build-tags"`
+	BuildTags           []string `mapstructure:"build-tags"`
+	ModulesDownloadMode string   `mapstructure:"modules-download-mode"`
 
 	ExitCodeIfIssuesFound int  `mapstructure:"issues-exit-code"`
 	AnalyzeTests          bool `mapstructure:"tests"`
@@ -155,7 +158,8 @@ type LintersSettings struct {
 		IncludeGoRoot bool `mapstructure:"include-go-root"`
 	}
 	Misspell struct {
-		Locale string
+		Locale      string
+		IgnoreWords []string `mapstructure:"ignore-words"`
 	}
 	Unused struct {
 		CheckExported bool `mapstructure:"check-exported"`
@@ -166,13 +170,14 @@ type LintersSettings struct {
 	Nakedret NakedretSettings
 	Prealloc PreallocSettings
 	Errcheck ErrcheckSettings
+	Gocritic GocriticSettings
 }
 
 type ErrcheckSettings struct {
-	CheckTypeAssertions bool       `mapstructure:"check-type-assertions"`
-	CheckAssignToBlank  bool       `mapstructure:"check-blank"`
-	Ignore              IgnoreFlag `mapstructure:"ignore"`
-	Exclude             string     `mapstructure:"exclude"`
+	CheckTypeAssertions bool   `mapstructure:"check-type-assertions"`
+	CheckAssignToBlank  bool   `mapstructure:"check-blank"`
+	Ignore              string `mapstructure:"ignore"`
+	Exclude             string `mapstructure:"exclude"`
 }
 
 type LllSettings struct {
@@ -211,8 +216,8 @@ var defaultLintersSettings = LintersSettings{
 		RangeLoops: true,
 		ForLoops:   false,
 	},
-	Errcheck: ErrcheckSettings{
-		Ignore: IgnoreFlag{},
+	Gocritic: GocriticSettings{
+		SettingsPerCheck: map[string]GocriticCheckSettings{},
 	},
 }
 
@@ -226,9 +231,47 @@ type Linters struct {
 	Presets []string
 }
 
+type ExcludeRule struct {
+	Linters []string
+	Path    string
+	Text    string
+}
+
+func validateOptionalRegex(value string) error {
+	if value == "" {
+		return nil
+	}
+	_, err := regexp.Compile(value)
+	return err
+}
+
+func (e ExcludeRule) Validate() error {
+	if err := validateOptionalRegex(e.Path); err != nil {
+		return fmt.Errorf("invalid path regex: %v", err)
+	}
+	if err := validateOptionalRegex(e.Text); err != nil {
+		return fmt.Errorf("invalid text regex: %v", err)
+	}
+	nonBlank := 0
+	if len(e.Linters) > 0 {
+		nonBlank++
+	}
+	if e.Path != "" {
+		nonBlank++
+	}
+	if e.Text != "" {
+		nonBlank++
+	}
+	if nonBlank < 2 {
+		return errors.New("at least 2 of (text, path, linters) should be set")
+	}
+	return nil
+}
+
 type Issues struct {
-	ExcludePatterns    []string `mapstructure:"exclude"`
-	UseDefaultExcludes bool     `mapstructure:"exclude-use-default"`
+	ExcludePatterns    []string      `mapstructure:"exclude"`
+	ExcludeRules       []ExcludeRule `mapstructure:"exclude-rules"`
+	UseDefaultExcludes bool          `mapstructure:"exclude-use-default"`
 
 	MaxIssuesPerLinter int `mapstructure:"max-issues-per-linter"`
 	MaxSameIssues      int `mapstructure:"max-same-issues"`
@@ -236,6 +279,8 @@ type Issues struct {
 	DiffFromRevision  string `mapstructure:"new-from-rev"`
 	DiffPatchFilePath string `mapstructure:"new-from-patch"`
 	Diff              bool   `mapstructure:"new"`
+
+	NeedFix bool `mapstructure:"fix"`
 }
 
 type Config struct { //nolint:maligned
@@ -259,48 +304,4 @@ func NewDefault() *Config {
 	return &Config{
 		LintersSettings: defaultLintersSettings,
 	}
-}
-
-// IgnoreFlags was taken from errcheck in order to keep the API identical.
-// https://github.com/kisielk/errcheck/blob/1787c4bee836470bf45018cfbc783650db3c6501/main.go#L25-L60
-type IgnoreFlag map[string]*regexp.Regexp
-
-func (f IgnoreFlag) String() string {
-	pairs := make([]string, 0, len(f))
-	for pkg, re := range f {
-		prefix := ""
-		if pkg != "" {
-			prefix = pkg + ":"
-		}
-		pairs = append(pairs, prefix+re.String())
-	}
-	return fmt.Sprintf("%q", strings.Join(pairs, ","))
-}
-
-func (f IgnoreFlag) Set(s string) error {
-	if s == "" {
-		return nil
-	}
-	for _, pair := range strings.Split(s, ",") {
-		colonIndex := strings.Index(pair, ":")
-		var pkg, re string
-		if colonIndex == -1 {
-			pkg = ""
-			re = pair
-		} else {
-			pkg = pair[:colonIndex]
-			re = pair[colonIndex+1:]
-		}
-		regex, err := regexp.Compile(re)
-		if err != nil {
-			return err
-		}
-		f[pkg] = regex
-	}
-	return nil
-}
-
-// Type returns the type of the flag follow the pflag format.
-func (IgnoreFlag) Type() string {
-	return "stringToRegexp"
 }
