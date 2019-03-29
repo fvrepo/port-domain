@@ -20,7 +20,7 @@ func (c *Config) Flags() *pflag.FlagSet {
 	f := pflag.NewFlagSet("PortServerConfig", pflag.PanicOnError)
 
 	//grpc
-	f.StringVar(&c.Bind, "bind", "127.0.0.1:0", "ip:port")
+	f.StringVar(&c.Bind, "bind", "0.0.0.0:8000", "ip:port")
 	// mongo
 	f.StringVar(&c.MongoUser, "mongo_user", "", "mongo db user")
 	f.StringVar(&c.MongoPassword, "mongo_password", "", "mongo db password")
