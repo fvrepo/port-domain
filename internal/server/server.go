@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,7 +38,7 @@ func (s *Server) SavePort(ctx context.Context, request *portApi.SavePortRequest)
 }
 
 func (s *Server) GetAllPorts(ctx context.Context, request *portApi.GetAllPortsRequest) (*portApi.GetAllPortsResponse, error) {
-	pm, err := s.controller.GetAllPorts(ctx, int(request.GetLimit()), int(request.GetLimit()))
+	pm, err := s.controller.GetAllPorts(ctx, int(request.GetLimit()), int(request.GetSkip()))
 	if err != nil {
 		l.WithError(err).Error()
 		return nil, status.Error(codes.Internal, errors.WithStack(err).Error())

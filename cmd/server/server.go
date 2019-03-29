@@ -52,6 +52,7 @@ var CMD = &cobra.Command{
 		storage := storage.New(mongoDb)
 		controller := controller.New(storage)
 
+		// todo need to add logger
 		srv := grpc.NewServer(
 			grpc.UnaryInterceptor(grpc_recovery.UnaryServerInterceptor(grpc_recovery.WithRecoveryHandler(panicHandler()))),
 			grpc.MaxConcurrentStreams(math.MaxUint32),
