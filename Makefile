@@ -85,7 +85,7 @@ fmt:
 
 build:
 	@echo " $(GREEN_COLOR)[build]$(DEFAULT_COLOR)"
-	CGO_ENABLED=1 $(GOBUILD) --tags static -o $(BINARY)
+	$(GOBUILD) --tags static -o $(BINARY)
 
 version:
 	@echo " $(GREEN_COLOR)[version]$(DEFAULT_COLOR)"
