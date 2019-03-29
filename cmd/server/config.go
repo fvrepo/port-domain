@@ -25,7 +25,7 @@ func (c *Config) Flags() *pflag.FlagSet {
 	f.StringVar(&c.MongoUser, "mongo_user", "", "mongo db user")
 	f.StringVar(&c.MongoPassword, "mongo_password", "", "mongo db password")
 	f.StringVar(&c.MongoDb, "mongo_db", "", "mongo database name")
-	f.StringVar(&c.MongoDb, "mongo_host", "", "mongo host")
+	f.StringVar(&c.MongoHost, "mongo_host", "", "mongo host")
 
 	return f
 }
