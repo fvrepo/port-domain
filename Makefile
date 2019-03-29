@@ -48,7 +48,7 @@ help:
 	@echo '    coverage           Report code tests coverage.'
 	@echo '    fmt                Run gofmt on package sources.'
 	@echo '    build              Compile packages and dependencies.'
-	@echo `    grpc               Generate pb.go from proto file
+	@echo '    grpc               Generate pb.go from proto file'
 	@echo '    version            Print Go version.'
 	@echo ''
 	@echo 'Targets run by default are: clean fmt lint test.'
