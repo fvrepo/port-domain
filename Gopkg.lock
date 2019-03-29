@@ -809,7 +809,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "63eda1eb0650888965ead1296efd04d0b2b61128"
+  revision = "74de082e2cca95839e88aa0aeee5aadf6ce7710f"
 
 [[projects]]
   branch = "master"
@@ -821,14 +821,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6b3e6ddcebac95be1d690dbd53b5aa2e520715becb7e521bb526ccf3b4c53c15"
+  digest = "1:f6321364014431568a59b49b449d6ae60c017f3afa3f4ab787a5636853b16b1e"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "f49334f85ddcf0f08d7fb6dd7363e9e6d6b777eb"
+  revision = "9eb1bfa1ce65ae8a6ff3114b0aaf9a41a6cf3560"
 
 [[projects]]
   digest = "1:0c56024909189aee3364b7f21a95a27459f718aa7c199a5c111c36cfffd9eaef"
@@ -877,7 +877,7 @@
     "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "8f05a32dce9ff80c9bf11baeb89d26b410f39281"
+  revision = "ab21143f238442efbf2d6acedb69eaddbb43d088"
 
 [[projects]]
   branch = "master"
