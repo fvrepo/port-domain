@@ -127,9 +127,6 @@ func setupMongoContainer() (_ *storage.Storage, closer func() error, _ error) {
 	}
 
 	mongo := storage.New(client)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	var resCloser = func() error {
 		return pool.Purge(resource)

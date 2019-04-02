@@ -357,7 +357,8 @@
   revision = "0b8337e80d98f7eec18e4504a4557b34423fd039"
 
 [[projects]]
-  digest = "1:02af88818adadf7cee8ac92ef2d2e319f340a4b53937bcf62a0b91f6aa2bc7b1"
+  branch = "master"
+  digest = "1:d2889685a8ae9dd4483887a95987cfd75fb6fd0bec24abb3493b2737a6b414a2"
   name = "github.com/golangci/golangci-lint"
   packages = [
     "cmd/golangci-lint",
@@ -366,6 +367,9 @@
     "pkg/exitcodes",
     "pkg/fsutils",
     "pkg/golinters",
+    "pkg/golinters/goanalysis",
+    "pkg/golinters/goanalysis/checker",
+    "pkg/golinters/goanalysis/passes/nilness",
     "pkg/goutil",
     "pkg/lint",
     "pkg/lint/astcache",
@@ -380,8 +384,7 @@
     "pkg/timeutils",
   ]
   pruneopts = "UT"
-  revision = "901cf25e20f86b7e9dc6f73eaba5afbd0cbdc257"
-  version = "v1.15.0"
+  revision = "de1d1ad903cdfdfc577ecb08d5027576e70ed2f0"
 
 [[projects]]
   branch = "master"
@@ -393,18 +396,6 @@
   ]
   pruneopts = "UT"
   revision = "8afd9cbb6cfb34a3b4d4d5711bafdc6640ae892f"
-
-[[projects]]
-  branch = "master"
-  digest = "1:bfaf14a1dd31e57f9b433739af5f0411558d9ba90566c7342c02da9a48ea8e75"
-  name = "github.com/golangci/govet"
-  packages = [
-    ".",
-    "lib/cfg",
-    "lib/whitelist",
-  ]
-  pruneopts = "UT"
-  revision = "44ddbe260190d79165f4150b828650780405d801"
 
 [[projects]]
   branch = "master"
@@ -821,14 +812,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f6321364014431568a59b49b449d6ae60c017f3afa3f4ab787a5636853b16b1e"
+  digest = "1:641f7202c4626fb19f68ecbbbd493df0bfe2e38f97ecb4d5d3b16536ff0f84eb"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "9eb1bfa1ce65ae8a6ff3114b0aaf9a41a6cf3560"
+  revision = "e4093980e83e70784fc393a93d5620e2654097f0"
 
 [[projects]]
   digest = "1:0c56024909189aee3364b7f21a95a27459f718aa7c199a5c111c36cfffd9eaef"
@@ -856,11 +847,41 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2e6d831562726e99d526c14e337e01dc03f0fa0e7bdd30cdd045705fc89e8b55"
+  digest = "1:b17a2c9536b6ac15468d2ce48176d3921daed556167510ffde9d049a6333d356"
   name = "golang.org/x/tools"
   packages = [
+    "go/analysis",
+    "go/analysis/passes/asmdecl",
+    "go/analysis/passes/assign",
+    "go/analysis/passes/atomic",
+    "go/analysis/passes/atomicalign",
+    "go/analysis/passes/bools",
+    "go/analysis/passes/buildssa",
+    "go/analysis/passes/buildtag",
+    "go/analysis/passes/cgocall",
+    "go/analysis/passes/composite",
+    "go/analysis/passes/copylock",
+    "go/analysis/passes/ctrlflow",
+    "go/analysis/passes/httpresponse",
+    "go/analysis/passes/inspect",
+    "go/analysis/passes/internal/analysisutil",
+    "go/analysis/passes/loopclosure",
+    "go/analysis/passes/lostcancel",
+    "go/analysis/passes/nilfunc",
+    "go/analysis/passes/printf",
+    "go/analysis/passes/shadow",
+    "go/analysis/passes/shift",
+    "go/analysis/passes/stdmethods",
+    "go/analysis/passes/structtag",
+    "go/analysis/passes/tests",
+    "go/analysis/passes/unmarshal",
+    "go/analysis/passes/unreachable",
+    "go/analysis/passes/unsafeptr",
+    "go/analysis/passes/unusedresult",
     "go/ast/astutil",
+    "go/ast/inspector",
     "go/buildutil",
+    "go/cfg",
     "go/gcexportdata",
     "go/internal/cgo",
     "go/internal/gcimporter",
@@ -877,7 +898,7 @@
     "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "ab21143f238442efbf2d6acedb69eaddbb43d088"
+  revision = "4c644d7e323d3b4a3883d4e238b908fe615f7586"
 
 [[projects]]
   branch = "master"
@@ -885,7 +906,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "d831d65fe17df2e52bcc4316d4a9f7a418701f43"
+  revision = "f467c93bbac2133ff463e1f93d18d8f9f3f04451"
 
 [[projects]]
   digest = "1:c00eb80d7b152379c3e94c38d82b29deca98b1d0f53e4e20362589b7fcbffa07"
